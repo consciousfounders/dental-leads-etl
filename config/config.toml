@@ -1,0 +1,12 @@
+[paths]
+local_data_dir = "./data"
+
+[gcs]
+bucket = "dl-ingestion-lake"
+
+[snowflake]
+account = "your_account_id_here"
+warehouse = "COMPUTE_WH"
+database = "DENTAL_LEADS"
+schema = "RAW"
+

@@ -1,0 +1,6 @@
+snowflake-connector-python
+google-cloud-storage
+pandas
+pyarrow
+python-dotenv
+toml

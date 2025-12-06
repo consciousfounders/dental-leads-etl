@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+env/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Secrets (VERY IMPORTANT)
+*.json
+.keys/
+.secrets/
+config/secrets.toml
+config/secrets.json
+
+# Logs
+*.log
+
+# Cursor metadata
+.cursor
