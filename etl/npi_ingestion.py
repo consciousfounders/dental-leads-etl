@@ -9,7 +9,7 @@ def run():
     
     Expected structure:
     - GCS path: gs://dl-ingestion-lake/npi/*.csv
-    - Target table: RAW.NPI_PROVIDERS
+    - Target table: RAW.NPI_DATA
     """
     print(f"🚀 Starting NPI ingestion pipeline at {datetime.now()}")
     
@@ -44,7 +44,7 @@ def run():
             db.execute(sql)
             
             # Verify row count
-            count_sql = "SELECT COUNT(*) FROM RAW.NPI_PROVIDERS"
+            count_sql = "SELECT COUNT(*) FROM RAW.NPI_DATA"
             result = db.execute(count_sql)
             row_count = result[0][0] if result else 0
             

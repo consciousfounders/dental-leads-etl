@@ -206,7 +206,7 @@ AuditLogger.log_api_call(
 
 # Log data access
 AuditLogger.log_data_access(
-    table="RAW.NPI_PROVIDERS",
+    table="RAW.NPI_DATA",
     operation="INSERT",
     row_count=1000,
     success=True
