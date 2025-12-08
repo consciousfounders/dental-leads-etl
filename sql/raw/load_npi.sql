@@ -1,0 +1,4 @@
+-- Placeholder generic SQL file.
+-- Loader will choose engine-specific SQL depending on WAREHOUSE_ENGINE.
+-- Snowflake: load_npi.snowflake.sql
+-- BigQuery:  load_npi.bigquery.sql
