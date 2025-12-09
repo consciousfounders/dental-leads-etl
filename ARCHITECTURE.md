@@ -405,10 +405,16 @@ Use warehouse data to generate:
 
 ## Roadmap / Next Steps
 
+### 🎯 NEXT SESSION (Priority)
+1. **Verify Snowflake setup** - stage, GCS integration, tables
+2. **Build RAW → CLEAN SQL** - filter to ~200K active dentists
+3. **Initial Wiza enrichment test** - 100 sample leads
+4. **Scale Wiza enrichment** - 25K leads batch
+
 ### Phase 1: Foundation
-1. Verify Snowflake stage + GCS integration
-2. Automate NPI download (cron on VM)
-3. Build RAW → CLEAN transformation SQL (get to ~200K dentists)
+1. ~~Verify Snowflake stage + GCS integration~~ → NEXT SESSION
+2. ~~Automate NPI download (cron on VM)~~ → SKIPPED (manual is fine for now)
+3. ~~Build RAW → CLEAN transformation SQL (get to ~200K dentists)~~ → NEXT SESSION
 4. Create events + leads_master tables
 
 ### Phase 2: Enrichment & Validation
