@@ -23,3 +23,11 @@ config/secrets.json
 
 # Cursor metadata
 .cursor
+
+# Looker keys
+config/looker_*.p8
+config/looker_*.pub
+config/looker_*.json
+*.p8
+*.pub
+
