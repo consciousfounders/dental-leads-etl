@@ -31,3 +31,7 @@ config/looker_*.json
 *.p8
 *.pub
 
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
