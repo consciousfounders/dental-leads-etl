@@ -135,6 +135,17 @@
 | **GCS Bucket** | Data lake | `gs://dl-ingestion-lake/npi/` |
 | **GCP VM** | Orchestration hub | Runs ETL, webhooks, enrichment APIs |
 | **Vertex AI** | ML models | Lead scoring, predictions |
+| **Secret Manager** | Secrets (prod) | Optional - can use local `.toml` files |
+
+### Local Development Setup
+
+For local development, skip GCP Secret Manager by setting:
+
+```bash
+export SKIP_SECRET_MANAGER=true
+```
+
+Secrets are read from `config/secrets.toml` (gitignored). Copy from `config/secrets_example.toml`.
 
 ### VM Role (Orchestration Hub)
 
@@ -386,6 +397,12 @@ Use warehouse data to generate:
 - [x] DB adapter for warehouse switching (`utils/db_adapter.py`)
 - [x] NPI ingestion pipeline (`etl/npi_ingestion.py`)
 - [x] Repo connected to GitHub (`consciousfounders/dental-leads-etl`)
+- [x] **Snowflake setup verified** - GCS integration working, NPI data loaded (9.2M rows)
+- [x] **RAW → CLEAN transformation** - 366K dental providers in `CLEAN.DENTAL_PROVIDERS`
+- [x] **Initial Wiza enrichment test** - 84 matched records in `ENRICHED.DENTAL_PROVIDERS_SAMPLE`
+- [x] **Decision maker identification** - 66K practice owners in `CLEAN.PRACTICE_DECISION_MAKERS`
+- [x] **Auth officials enrichment queue** - 38K contacts in `CLEAN.AUTH_OFFICIALS_TO_ENRICH`
+- [x] **Contact strategy defined** - Multi-channel approach by role type
 
 ### Stubbed / In Progress 🟡
 - [ ] Validation pipeline - Addy + Twilio APIs (`etl/validation_pipeline.py`)
@@ -393,44 +410,240 @@ Use warehouse data to generate:
 - [ ] VM sync script (`scripts/sync_to_vm.sh`)
 
 ### Not Started ❌
-- [ ] Snowflake stage verification
-- [ ] RAW → CLEAN transformation SQL
+- [ ] Wiza API integration (programmatic enrichment)
+- [ ] Role inference from LinkedIn titles
 - [ ] Events table schema creation
 - [ ] Webhook receiver on VM
 - [ ] GHL integration
+- [ ] Role-based email templates
 - [ ] De-anonymization service integration
 - [ ] ML model development
+
+---
+
+## Snowflake Tables (Current)
+
+| Schema | Table | Row Count | Description |
+|--------|-------|-----------|-------------|
+| `RAW` | `NPI_DATA` | 9,236,343 | Full NPI provider dump |
+| `CLEAN` | `DENTAL_PROVIDERS` | 366,557 | Active US dental providers |
+| `CLEAN` | `DENTAL_TAXONOMY_CODES` | 13 | Dental specialty reference |
+| `CLEAN` | `STATE_MAPPING` | 54 | State name → abbreviation |
+| `CLEAN` | `PRACTICE_DECISION_MAKERS` | 66,425 | Practice owners (matched auth officials) |
+| `CLEAN` | `AUTH_OFFICIALS_TO_ENRICH` | 38,447 | Auth officials needing enrichment |
+| `ENRICHED` | `WIZA_IMPORT` | 156 | Wiza export staging |
+| `ENRICHED` | `DENTAL_PROVIDERS_SAMPLE` | 84 | Enriched sample for Looker |
+
+---
+
+## Contact Strategy: Decision Makers & Auth Officials
+
+### Data Breakdown
+
+```
+104,872 Dental Organizations
+    │
+    ├── 66,425 (63%) MATCHED → PRACTICE_DECISION_MAKERS
+    │   └── Auth official = Licensed dentist (has individual NPI)
+    │   └── HIGH confidence practice owner/decision maker
+    │   └── 44K high confidence (same city), 22K medium (same state)
+    │
+    └── 38,447 (37%) UNMATCHED → AUTH_OFFICIALS_TO_ENRICH
+        ├── 23K "Unknown" credential (could be owners, spouses, partners)
+        ├── 11K Dentist credential but no NPI match (new/retired/out-of-state)
+        ├── 4K "Other" credentials
+        └── 268 Dental staff (RDH, RDA)
+```
+
+### Multi-Channel Contact Strategy
+
+| Contact Type | Count | Source | Outreach Strategy |
+|--------------|-------|--------|-------------------|
+| **Practice Owner Dentists** | 66,425 | `PRACTICE_DECISION_MAKERS` | Direct pitch to decision maker |
+| **Individual Dentists** | 261,685 | `DENTAL_PROVIDERS` (type=Individual) | Personalized by specialty |
+| **Unknown Auth Officials** | 22,973 | `AUTH_OFFICIALS_TO_ENRICH` | Enrich via Wiza → customize by role |
+| **Dentist Auth (no NPI)** | 11,288 | `AUTH_OFFICIALS_TO_ENRICH` | Likely practice owners, high priority |
+
+### Enrichment Priority
+
+| Priority | Category | Count | Rationale |
+|----------|----------|-------|-----------|
+| 1 | Dentist credential, no NPI match | 11,254 | Likely practice owners |
+| 2 | Business professional (MBA, CPA) | 112 | Decision makers for purchases |
+| 3 | Unknown credential | 22,973 | Could be owners/partners |
+| 4 | Other | 4,108 | Lower priority |
+
+### Recommended Enrichment Flow
+
+```
+AUTH_OFFICIALS_TO_ENRICH
+    │
+    ▼
+Wiza/Apollo API Lookup
+    │
+    ├── Find LinkedIn profile
+    ├── Get current title
+    ├── Get verified email
+    │
+    ▼
+Infer Role from Title
+    │
+    ├── "Owner", "CEO", "President" → DECISION_MAKER
+    ├── "Office Manager" → INFLUENCER/GATEKEEPER
+    ├── "CFO", "Controller" → BUDGET_HOLDER
+    ├── "Partner", "Co-founder" → DECISION_MAKER
+    │
+    ▼
+Update Master Table + Customize Outreach
+```
 
 ---
 
 ## Roadmap / Next Steps
 
 ### 🎯 NEXT SESSION (Priority)
-1. **Verify Snowflake setup** - stage, GCS integration, tables
-2. **Build RAW → CLEAN SQL** - filter to ~200K active dentists
-3. **Initial Wiza enrichment test** - 100 sample leads
-4. **Scale Wiza enrichment** - 25K leads batch
+1. **Enrich AUTH_OFFICIALS_TO_ENRICH** - Start with Priority 1 (11K dentist credentials)
+2. **Scale Wiza enrichment** - 25K leads batch using API
+3. **Build role inference logic** - Map LinkedIn titles to decision maker types
+4. **Connect Looker** to decision maker tables
 
-### Phase 1: Foundation
-1. ~~Verify Snowflake stage + GCS integration~~ → NEXT SESSION
+### Phase 1: Foundation ✅ COMPLETE
+1. ~~Verify Snowflake stage + GCS integration~~ ✅ Done (Dec 2024)
 2. ~~Automate NPI download (cron on VM)~~ → SKIPPED (manual is fine for now)
-3. ~~Build RAW → CLEAN transformation SQL (get to ~200K dentists)~~ → NEXT SESSION
-4. Create events + leads_master tables
+3. ~~Build RAW → CLEAN transformation SQL~~ ✅ Done - 366K providers
+4. ~~Identify practice decision makers~~ ✅ Done - 66K matched owners
+5. ~~Create auth officials enrichment queue~~ ✅ Done - 38K to enrich
 
-### Phase 2: Enrichment & Validation
-5. Implement Addy API integration (address validation)
-6. Implement Twilio API integration (phone validation)
-7. Implement enrichment waterfall (Wiza → Apollo → Clay)
+### Phase 2: Enrichment & Validation 🟡 IN PROGRESS
+6. Implement Wiza API integration for auth officials enrichment ← **CURRENT**
+7. Build role inference from LinkedIn titles
+8. Implement Addy API integration (address validation)
+9. Implement Twilio API integration (phone validation)
+10. Implement enrichment waterfall (Wiza → Apollo → Clay)
 
 ### Phase 3: Activation
-8. Build GHL integration (export leads, receive webhooks)
-9. Set up webhook receiver on VM
-10. Integrate de-anonymization service (RB2B or Leadfeeder)
+11. Build GHL integration (export leads, receive webhooks)
+12. Set up webhook receiver on VM
+13. Create role-based email templates (Owner vs Manager vs Staff)
+14. Integrate de-anonymization service (RB2B or Leadfeeder)
 
 ### Phase 4: Intelligence
-11. Build ML feature pipeline
-12. Train lead scoring model in Vertex AI
-13. Integrate AI content generation
+15. Build ML feature pipeline
+16. Train lead scoring model in Vertex AI
+17. Integrate AI content generation
+18. A/B test role-based messaging
+
+### Phase 5: Data Enrichment - State Licenses
+19. Build distributed state dental board scraper
+20. Match NPI records to state license dates (true practice age)
+21. Enrich with license status, disciplinary history
+
+---
+
+## State License Matching (Future)
+
+### Why State Licenses > NPI Enumeration Date
+
+The NPI enumeration date is **NOT** practice age:
+- NPI was mandated in 2007 (HIPAA)
+- Everyone registered 2005-2008 regardless of experience
+- A 30-year veteran and new grad both show "2006" registration
+
+**State license date = True practice start date**
+
+### Data Sources by State
+
+| State | Board | Data Access | Format |
+|-------|-------|-------------|--------|
+| CA | Dental Board of California | Public lookup | Web scrape |
+| TX | Texas State Board of Dental Examiners | API available | JSON |
+| FL | Florida Board of Dentistry | Public lookup | Web scrape |
+| NY | NYS Education Dept | Public lookup | Web scrape |
+| ... | (50+ boards) | Varies | Varies |
+
+### Proposed Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 STATE LICENSE SCRAPER                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │   CA Board  │    │   TX Board  │    │   FL Board  │     │
+│  │   Scraper   │    │   API       │    │   Scraper   │     │
+│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘     │
+│         │                  │                  │              │
+│         └──────────────────┼──────────────────┘              │
+│                            ▼                                 │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              LICENSE DATA LAKE (GCS)                  │   │
+│  │   • license_number, state, issue_date, expiry        │   │
+│  │   • dentist_name, license_type, status               │   │
+│  │   • disciplinary_actions (if any)                    │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                            │                                 │
+│                            ▼                                 │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              MATCHING ENGINE                          │   │
+│  │   NPI Record (name, state) ←→ License Record          │   │
+│  │   Fuzzy matching on name variations                   │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                            │                                 │
+│                            ▼                                 │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              ENRICHED PROVIDER TABLE                  │   │
+│  │   + license_issue_date (TRUE practice age)            │   │
+│  │   + license_status (active/inactive/disciplined)      │   │
+│  │   + years_licensed (accurate count)                   │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Priority States (by provider count)
+1. **CA** - 52K providers (most complex board)
+2. **TX** - 30K providers
+3. **NY** - 22K providers
+4. **FL** - 22K providers
+5. **IL** - 15K providers
+
+---
+
+## Looker Integration
+
+### Tables to Expose in Looker
+
+| Table | Use Case |
+|-------|----------|
+| `CLEAN.DENTAL_PROVIDERS` | Main provider directory |
+| `CLEAN.PRACTICE_DECISION_MAKERS` | High-value contacts |
+| `CLEAN.AUTH_OFFICIALS_TO_ENRICH` | Enrichment queue |
+| `CLEAN.INNOVATION_READY_TARGETS` | Segmented targeting |
+| `ENRICHED.DENTAL_PROVIDERS_SAMPLE` | Enriched sample data |
+
+### Suggested Dashboards
+
+1. **Provider Overview**
+   - Total providers by state (map)
+   - Specialty distribution
+   - Practice age cohorts (NPI-based, with caveat)
+
+2. **Decision Maker Analysis**
+   - Matched owners by state
+   - Gender distribution
+   - Enrichment coverage
+
+3. **Campaign Targeting**
+   - Innovation-ready segments
+   - Enrichment queue status
+   - Contact completeness
+
+### Connection Setup
+```
+Snowflake Account: (from secrets)
+Database: DENTAL_LEADS
+Schemas: CLEAN, ENRICHED, RAW
+```
 
 ---
 

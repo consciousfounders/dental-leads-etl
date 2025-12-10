@@ -12,11 +12,18 @@ SOC 2 Compliance:
 - No plaintext secrets in code
 """
 
-from google.cloud import secretmanager
 import os
 import logging
 from typing import Optional
 from datetime import datetime
+
+# Conditional import - allows env var fallback when Secret Manager not installed
+try:
+    from google.cloud import secretmanager
+    SECRET_MANAGER_AVAILABLE = True
+except ImportError:
+    secretmanager = None
+    SECRET_MANAGER_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +40,15 @@ class SecretsManager:
         self.client = None
         self.use_secret_manager = False
         
-        # Try to initialize Secret Manager
-        if self.gcp_project:
+        # Check if Secret Manager is explicitly disabled
+        skip_secret_manager = os.getenv("SKIP_SECRET_MANAGER", "").lower() in ("true", "1", "yes")
+        
+        if skip_secret_manager:
+            logger.info("ℹ️  SKIP_SECRET_MANAGER=true - using local secrets only")
+        # Try to initialize Secret Manager (only if package is available)
+        elif not SECRET_MANAGER_AVAILABLE:
+            logger.info("ℹ️  google-cloud-secret-manager not installed - using environment variables")
+        elif self.gcp_project:
             try:
                 self.client = secretmanager.SecretManagerServiceClient()
                 self.use_secret_manager = True
