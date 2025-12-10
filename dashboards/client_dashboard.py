@@ -190,26 +190,34 @@ def get_snowflake_connection():
                 database=st.secrets.snowflake.database,
                 schema=st.secrets.snowflake.get('schema', 'CLEAN')
             )
-    except:
-        pass  # Silently fall back to env vars
+    except Exception as e:
+        # If secrets exist but connection failed, raise the error
+        if hasattr(st, 'secrets') and 'snowflake' in st.secrets:
+            raise e
     
     # Fall back to environment variables (for local dev)
+    password = os.getenv('SNOWFLAKE_PASSWORD', '')
+    if not password:
+        raise Exception("No Snowflake credentials configured. Set SNOWFLAKE_PASSWORD env var or configure Streamlit secrets.")
+    
     return snowflake.connector.connect(
         account=os.getenv('SNOWFLAKE_ACCOUNT', 'JW33852'),
         user=os.getenv('SNOWFLAKE_USER', 'ZANDER'),
-        password=os.getenv('SNOWFLAKE_PASSWORD', ''),
+        password=password,
         warehouse=os.getenv('SNOWFLAKE_WAREHOUSE', 'COMPUTE_WH'),
         database=os.getenv('SNOWFLAKE_DATABASE', 'DENTAL_LEADS'),
         schema=os.getenv('SNOWFLAKE_SCHEMA', 'CLEAN')
     )
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, show_spinner=False)
 def load_data():
     """Load data from Snowflake"""
     us_states_sql = "','".join(US_STATES_ONLY)
     
     conn = get_snowflake_connection()
+    if conn is None:
+        raise Exception("Could not establish Snowflake connection")
     cursor = conn.cursor()
     
     try:
@@ -327,9 +335,32 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Load data
-    with st.spinner("Loading market data..."):
-        data = load_data()
+    # Load data with error handling
+    try:
+        with st.spinner("Loading market data..."):
+            data = load_data()
+    except Exception as e:
+        st.error("⚠️ Could not connect to database. Please configure secrets.")
+        st.code(f"Error: {e}")
+        st.markdown("""
+        ### Setup Required
+        
+        Add secrets in **Streamlit Cloud → Settings → Secrets**:
+        
+        ```toml
+        [snowflake]
+        account = "YOUR_ACCOUNT"
+        user = "YOUR_USER"
+        password = "YOUR_PASSWORD"
+        warehouse = "COMPUTE_WH"
+        database = "DENTAL_LEADS"
+        schema = "CLEAN"
+        
+        [auth]
+        password = "buffered"
+        ```
+        """)
+        return
     
     # No sidebar - hide it completely
     st.markdown("""<style>[data-testid="stSidebar"] { display: none; }</style>""", unsafe_allow_html=True)
