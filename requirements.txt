@@ -1,6 +1,7 @@
-snowflake-connector-python
-google-cloud-storage
-pandas
-pyarrow
-python-dotenv
-toml
+streamlit>=1.28.0
+plotly>=5.18.0
+snowflake-connector-python>=3.0.0
+pandas>=2.0.0
+pyarrow>=14.0.0
+python-dotenv>=1.0.0
+toml>=0.10.0
