@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  dashboard:
+    build: .
+    container_name: dental-dashboard
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./.streamlit/secrets.toml:/app/.streamlit/secrets.toml:ro
+    environment:
+      - STREAMLIT_SERVER_HEADLESS=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
