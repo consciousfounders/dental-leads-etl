@@ -176,20 +176,50 @@ def check_password():
 
 
 def get_snowflake_connection():
-    """Get Snowflake connection - works with Streamlit Cloud and local"""
+    """Get Snowflake connection - supports RSA key auth and password auth"""
     import snowflake.connector
     
-    # Try Streamlit secrets first (for Streamlit Cloud)
+    # Try Streamlit secrets first (for Streamlit Cloud and local)
     try:
         if hasattr(st, 'secrets') and 'snowflake' in st.secrets:
-            return snowflake.connector.connect(
-                account=st.secrets.snowflake.account,
-                user=st.secrets.snowflake.user,
-                password=st.secrets.snowflake.password,
-                warehouse=st.secrets.snowflake.warehouse,
-                database=st.secrets.snowflake.database,
-                schema=st.secrets.snowflake.get('schema', 'CLEAN')
-            )
+            sf = st.secrets.snowflake
+            
+            # Check if RSA key is available (preferred, more secure)
+            rsa_key = sf.get('rsa_private_key', None)
+            if rsa_key:
+                # Use RSA key-pair authentication (no password!)
+                from cryptography.hazmat.primitives import serialization
+                from cryptography.hazmat.backends import default_backend
+                
+                private_key = serialization.load_pem_private_key(
+                    rsa_key.encode(),
+                    password=None,
+                    backend=default_backend()
+                )
+                private_key_bytes = private_key.private_bytes(
+                    encoding=serialization.Encoding.DER,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption()
+                )
+                
+                return snowflake.connector.connect(
+                    account=sf.account,
+                    user=sf.user,
+                    private_key=private_key_bytes,
+                    warehouse=sf.warehouse,
+                    database=sf.database,
+                    schema=sf.get('schema', 'CLEAN')
+                )
+            else:
+                # Fall back to password auth
+                return snowflake.connector.connect(
+                    account=sf.account,
+                    user=sf.user,
+                    password=sf.password,
+                    warehouse=sf.warehouse,
+                    database=sf.database,
+                    schema=sf.get('schema', 'CLEAN')
+                )
     except Exception as e:
         # If secrets exist but connection failed, raise the error
         if hasattr(st, 'secrets') and 'snowflake' in st.secrets:
@@ -201,8 +231,8 @@ def get_snowflake_connection():
         raise Exception("No Snowflake credentials configured. Set SNOWFLAKE_PASSWORD env var or configure Streamlit secrets.")
     
     return snowflake.connector.connect(
-        account=os.getenv('SNOWFLAKE_ACCOUNT', 'JW33852'),
-        user=os.getenv('SNOWFLAKE_USER', 'ZANDER'),
+        account=os.getenv('SNOWFLAKE_ACCOUNT', 'lqrrxbi-pd02365'),
+        user=os.getenv('SNOWFLAKE_USER', 'ConsciousFounders'),
         password=password,
         warehouse=os.getenv('SNOWFLAKE_WAREHOUSE', 'COMPUTE_WH'),
         database=os.getenv('SNOWFLAKE_DATABASE', 'DENTAL_LEADS'),
