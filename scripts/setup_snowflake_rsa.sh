@@ -16,7 +16,7 @@ KEYS_DIR="$PROJECT_ROOT/.keys"
 
 # 1Password settings
 OP_VAULT="CF – OnPharma Admin"
-OP_ITEM="Snowflake - Dental Leads"
+OP_ITEM="Snowflake - Healthcare Leads"
 
 echo "🔐 Setting up RSA Key-Pair Authentication for Snowflake"
 echo ""
@@ -104,7 +104,7 @@ def get_from_1password(item, vault, field):
 
 def main():
     vault = "CF – OnPharma Admin"
-    item = "Snowflake - Dental Leads"
+    item = "Snowflake - Healthcare Leads"
     
     print("🔐 Fetching credentials from 1Password...")
     account = get_from_1password(item, vault, "account")

@@ -15,7 +15,7 @@ def get_from_1password(item, vault, field):
 
 def main():
     vault = "CF – OnPharma Admin"
-    item = "Snowflake - Dental Leads"
+    item = "Snowflake - Healthcare Leads"
     
     print("🔐 Fetching credentials from 1Password...")
     account = get_from_1password(item, vault, "account")

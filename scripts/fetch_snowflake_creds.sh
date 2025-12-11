@@ -11,7 +11,7 @@ SECRETS_FILE="$PROJECT_ROOT/.streamlit/secrets.toml"
 
 # 1Password item details
 OP_VAULT="CF – OnPharma Admin"
-OP_ITEM="Snowflake - Dental Leads"
+OP_ITEM="Snowflake - Healthcare Leads"
 
 echo "🔐 Fetching Snowflake credentials from 1Password..."
 
