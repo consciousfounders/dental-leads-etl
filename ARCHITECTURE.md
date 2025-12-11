@@ -396,7 +396,7 @@ Use warehouse data to generate:
 - [x] BigQuery client (`utils/bigquery_client.py`)
 - [x] DB adapter for warehouse switching (`utils/db_adapter.py`)
 - [x] NPI ingestion pipeline (`etl/npi_ingestion.py`)
-- [x] Repo connected to GitHub (`consciousfounders/dental-leads-etl`)
+- [x] Repo connected to GitHub (`consciousfounders/healthcare-leads-data`)
 - [x] **Snowflake setup verified** - GCS integration working, NPI data loaded (9.2M rows)
 - [x] **RAW → CLEAN transformation** - 366K dental providers in `CLEAN.DENTAL_PROVIDERS`
 - [x] **Initial Wiza enrichment test** - 84 matched records in `ENRICHED.DENTAL_PROVIDERS_SAMPLE`
@@ -650,7 +650,7 @@ Schemas: CLEAN, ENRICHED, RAW
 ## Repository Structure
 
 ```
-dental-leads-etl/
+healthcare-leads-data/
 ├── config/
 │   ├── config.toml           # Non-sensitive configuration
 │   └── secrets_example.toml  # Template for secrets
@@ -696,5 +696,5 @@ dental-leads-etl/
 
 ## Contact / GitHub
 
-- **Repository**: https://github.com/consciousfounders/dental-leads-etl
+- **Repository**: https://github.com/consciousfounders/healthcare-leads-data
 - **Owner**: consciousfounders

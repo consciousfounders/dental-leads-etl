@@ -7,7 +7,7 @@ set -e
 VM_IP="34.168.135.142"
 VM_USER="zander"
 SSH_KEY="/Users/infinitespace/.ssh/id_ed25519"
-PROJECT_DIR="/home/zander/dental-leads-etl"
+PROJECT_DIR="/home/zander/healthcare-leads-data"
 DOMAIN="onpharma.consciousfounders.com"
 
 echo "🚀 Deploying Dental Dashboard to $VM_IP..."
