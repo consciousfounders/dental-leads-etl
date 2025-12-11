@@ -55,6 +55,8 @@ mkdir -p "$PROJECT_ROOT/.streamlit"
 # Generate secrets.toml
 if [ -n "$SF_RSA_KEY" ]; then
     echo "   🔑 Using RSA key-pair authentication (more secure)"
+    # Clean the key - remove any leading/trailing quotes from 1Password
+    SF_RSA_KEY_CLEAN=$(echo "$SF_RSA_KEY" | sed 's/^"//; s/"$//')
     cat > "$SECRETS_FILE" << EOF
 [snowflake]
 account = "$SF_ACCOUNT"
@@ -63,7 +65,7 @@ warehouse = "$SF_WAREHOUSE"
 database = "$SF_DATABASE"
 schema = "$SF_SCHEMA"
 rsa_private_key = """
-$SF_RSA_KEY
+$SF_RSA_KEY_CLEAN
 """
 
 [auth]

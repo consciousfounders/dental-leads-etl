@@ -6,3 +6,4 @@ pyarrow>=14.0.0
 python-dotenv>=1.0.0
 toml>=0.10.0
 cryptography>=41.0.0
+watchdog>=4.0.0
