@@ -1,6 +1,6 @@
-# Healthcare Leads Data Platform
+# Data Pipeline Platform
 
-A comprehensive data warehouse and marketing intelligence platform for healthcare provider leads.
+A comprehensive data pipeline and marketing intelligence platform for healthcare provider leads. Consolidates data from multiple sources, transforms it through a medallion architecture (RAW → CLEAN → ENRICHED → SEGMENTED), and activates it through CRM and advertising channels with ML-powered personalization.
 
 ## 🏥 Provider Databases
 
@@ -50,16 +50,30 @@ streamlit run dashboards/client_dashboard.py --server.port 8502
 ## 📁 Project Structure
 
 ```
-healthcare-leads-data/
+data-pipeline/
+├── etl/                 ← ETL pipelines (merged from mental-health-etl)
+│   ├── pipelines/       ← Pipeline definitions
+│   ├── transforms/      ← Data transformations
+│   ├── loaders/         ← Data loaders (GCS, BigQuery, Snowflake)
+│   ├── npi_ingestion.py ← NPI data ingestion
+│   ├── enrichment_pipeline.py
+│   └── validation_pipeline.py
+├── infra/               ← Infrastructure as Code (from mental-health-etl)
+│   ├── terraform/       ← GCP resources
+│   ├── vm-setup/        ← VM configuration
+│   └── docker/          ← Container configs
+├── marketing/           ← Marketing automation (from mental-health-etl)
+│   ├── campaigns/       ← Campaign definitions
+│   ├── analytics/       ← Marketing analytics
+│   └── integrations/   ← CRM/email integrations
+├── warehouse/           ← Data warehouse schemas
+│   ├── models/          ← dbt models (from mental-health-etl)
+│   ├── seeds/           ← Seed data
+│   └── sql/             ← SQL schemas and queries
 ├── dashboards/          ← Streamlit dashboards
-├── sql/
-│   ├── raw/             ← Data ingestion
-│   ├── dental/          ← Dental transformations
-│   ├── mental_health/   ← Mental health transformations
-│   └── enriched/        ← Enrichment views
-├── scripts/             ← Automation scripts
+├── looker/              ← Looker models and views
 ├── utils/               ← Python utilities
-└── docker/              ← Container configs
+└── scripts/             ← Automation scripts
 ```
 
 ## 🛠️ Infrastructure
