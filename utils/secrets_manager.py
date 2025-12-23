@@ -87,6 +87,32 @@ class SecretsManager:
                 logger.warning(f"⚠️  Failed to fetch '{secret_name}' from Secret Manager: {e}")
                 self._log_access(secret_name, "FAILED", source="SECRET_MANAGER", error=str(e))
         
+        # Fall back to Streamlit secrets (if available)
+        try:
+            import streamlit as st
+            if hasattr(st, 'secrets'):
+                # Map secret names to Streamlit secrets structure
+                # e.g., "snowflake-account" -> st.secrets.snowflake.account
+                # e.g., "snowflake-password" -> st.secrets.snowflake.password
+                # Also handle "snowflake-private-key" -> st.secrets.snowflake.rsa_private_key
+                parts = secret_name.split("-", 1)
+                if len(parts) == 2:
+                    section, key = parts
+                    if section in st.secrets:
+                        # Try direct key match first
+                        if key in st.secrets[section]:
+                            value = st.secrets[section][key]
+                            self._log_access(secret_name, "SUCCESS", source="STREAMLIT_SECRETS")
+                            return str(value)
+                        # Try alternative key names
+                        # "private-key" -> "rsa_private_key"
+                        if key == "private-key" and "rsa_private_key" in st.secrets[section]:
+                            value = st.secrets[section]["rsa_private_key"]
+                            self._log_access(secret_name, "SUCCESS", source="STREAMLIT_SECRETS")
+                            return str(value)
+        except (ImportError, AttributeError, KeyError):
+            pass  # Streamlit not available or secret not found
+        
         # Fall back to environment variable
         env_var_name = secret_name.upper().replace("-", "_")
         env_value = os.getenv(env_var_name)

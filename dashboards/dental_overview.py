@@ -24,6 +24,31 @@ st.set_page_config(
 # Custom CSS for better styling
 st.markdown("""
 <style>
+    /* Force dark background - using !important to override Streamlit defaults */
+    .stApp {
+        background-color: #0e1117 !important;
+    }
+    .main .block-container {
+        background-color: #0e1117 !important;
+    }
+    .main {
+        background-color: #0e1117 !important;
+    }
+    body {
+        background-color: #0e1117 !important;
+    }
+    section[data-testid="stSidebar"] {
+        background-color: #1e3a5f !important;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #1e3a5f !important;
+    }
+    
+    /* Force text colors */
+    h1, h2, h3, h4, h5, h6, p, div, span, label {
+        color: #ffffff !important;
+    }
+    
     .metric-card {
         background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
         padding: 20px;
@@ -40,9 +65,19 @@ st.markdown("""
         opacity: 0.8;
     }
     .stMetric {
-        background: #f8f9fa;
+        background: #1e3a5f !important;
         padding: 15px;
         border-radius: 8px;
+        color: white !important;
+    }
+    .stMetric label {
+        color: white !important;
+    }
+    .stMetric [data-testid="stMetricValue"] {
+        color: white !important;
+    }
+    .stMetric [data-testid="stMetricLabel"] {
+        color: white !important;
     }
 </style>
 """, unsafe_allow_html=True)

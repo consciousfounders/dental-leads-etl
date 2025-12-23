@@ -1,0 +1,74 @@
+version: 2
+
+sources:
+  - name: texas_raw
+    description: Raw CSV data from Texas State Board of Dental Examiners
+    database: dental_data
+    schema: raw_texas
+    loader: csv_loader
+    loaded_at_field: _loaded_at
+    freshness:
+      warn_after: {count: 7, period: day}
+      error_after: {count: 14, period: day}
+
+    tables:
+      - name: dentist
+        description: Licensed dentists in Texas
+        identifier: dentist
+        columns:
+          - name: lic_id
+            description: Internal license ID (unique within file)
+          - name: lic_nbr
+            description: Public license number
+          - name: lic_sta_cde
+            description: Status code (20=Active, 60=Cancelled, etc.)
+          - name: entity_nbr
+            description: Entity reference number (potential NPI link)
+
+      - name: hygienist
+        description: Registered Dental Hygienists in Texas
+        identifier: hygienist
+        columns:
+          - name: lic_id
+            description: Internal license ID
+          - name: lic_nbr
+            description: Public license number
+          - name: last_mne
+            description: Last name (NOTE - typo in source, should be last_nme)
+
+      - name: dental_assistant
+        description: Registered Dental Assistants in Texas
+        identifier: dental_assistant
+        columns:
+          - name: lic_id
+            description: Internal license ID
+          - name: lic_nbr
+            description: Public license number
+
+      - name: labs
+        description: Dental Laboratories and Mobile Facilities in Texas
+        identifier: labs
+        columns:
+          - name: lic_id
+            description: Internal license ID
+          - name: lab_nme
+            description: Laboratory business name
+          - name: lab_type
+            description: Type of lab (Commercial, Licensed TX DDS, etc.)
+
+      - name: etn
+        description: Exception Tracking Numbers for foreign-trained dentists
+        identifier: etn
+        columns:
+          - name: lic_nbr
+            description: ETN license number
+          - name: rank_efct_dte
+            description: Rank effective date
+
+  # Template for adding other states
+  # - name: california_raw
+  #   database: dental_data
+  #   schema: raw_california
+  #   tables:
+  #     - name: dentist
+  #     - name: hygienist

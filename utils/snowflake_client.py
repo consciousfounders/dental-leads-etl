@@ -42,9 +42,26 @@ class SnowflakeClient:
         self.schema = secrets.get_secret("snowflake-schema", required=False) or "RAW"
         self.role = secrets.get_secret("snowflake-role", required=False) or "ACCOUNTADMIN"
         
-        # Fetch private key (could be file path or PEM content)
-        private_key_value = secrets.get_secret("snowflake-private-key")
-        self.private_key_bytes = self._parse_private_key(private_key_value)
+        # Try to fetch private key (optional - will fall back to password if not available)
+        private_key_value = secrets.get_secret("snowflake-private-key", required=False)
+        self.private_key_bytes = None
+        self.password = None
+        
+        if private_key_value:
+            try:
+                self.private_key_bytes = self._parse_private_key(private_key_value)
+                logger.info("✅ RSA private key loaded")
+            except Exception as e:
+                logger.warning(f"⚠️  Failed to parse private key, will try password auth: {e}")
+                self.private_key_bytes = None
+        
+        # If no valid private key, try password
+        if not self.private_key_bytes:
+            self.password = secrets.get_secret("snowflake-password", required=False)
+            if self.password:
+                logger.info("✅ Using password authentication")
+            else:
+                logger.warning("⚠️  No RSA key or password found - connection may fail")
         
         self._conn = None
         
@@ -100,24 +117,45 @@ class SnowflakeClient:
         to be instantiated without immediate network calls.
         """
         if self._conn is None or self._conn.is_closed():
-            try:
-                logger.info(f"🔌 Connecting to Snowflake account: {self.account}")
-                
-                self._conn = snowflake.connector.connect(
-                    user=self.user,
-                    account=self.account,
-                    private_key=self.private_key_bytes,  # Pass bytes directly
-                    warehouse=self.warehouse,
-                    database=self.database,
-                    schema=self.schema,
-                    role=self.role,
-                )
-                
-                logger.info("✅ Snowflake connection established")
-                
-            except Exception as e:
-                logger.error(f"❌ Snowflake connection failed: {e}")
-                raise
+            logger.info(f"🔌 Connecting to Snowflake account: {self.account}")
+            
+            # Try RSA key authentication first (if available)
+            if self.private_key_bytes:
+                try:
+                    self._conn = snowflake.connector.connect(
+                        user=self.user,
+                        account=self.account,
+                        private_key=self.private_key_bytes,
+                        warehouse=self.warehouse,
+                        database=self.database,
+                        schema=self.schema,
+                        role=self.role,
+                    )
+                    logger.info("✅ Snowflake connection established with RSA key")
+                    return self._conn
+                except Exception as e:
+                    logger.warning(f"⚠️  RSA key authentication failed: {e}")
+                    logger.info("🔄 Falling back to password authentication...")
+            
+            # Fall back to password authentication
+            if self.password:
+                try:
+                    self._conn = snowflake.connector.connect(
+                        user=self.user,
+                        account=self.account,
+                        password=self.password,
+                        warehouse=self.warehouse,
+                        database=self.database,
+                        schema=self.schema,
+                        role=self.role,
+                    )
+                    logger.info("✅ Snowflake connection established with password")
+                    return self._conn
+                except Exception as e:
+                    logger.error(f"❌ Password authentication also failed: {e}")
+                    raise
+            else:
+                raise ValueError("No authentication method available. Provide either RSA private key or password.")
         
         return self._conn
     
